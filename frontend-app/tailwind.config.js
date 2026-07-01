@@ -7,21 +7,24 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: '#FAF9F7',
-        surface: '#FFFFFF',
-        border: '#E8E4DF',
-        accent: '#8B7355',
+        background: '#FDFAF7',
+        surface:    '#FFFFFF',
+        border:     '#E5DDD3',
+        accent:     '#A0785A',
+        hero:       '#F5EDE3',
         text: {
-          primary: '#1A1A1A',
-          secondary: '#6B6560',
+          primary:   '#2C1810',
+          secondary: '#7A6355',
+          muted:     '#B8967A',
         },
         tag: {
-          bg: '#F0EDE8',
-          text: '#6B6560',
+          bg:   '#F5EDE3',
+          text: '#7A6355',
         },
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'sans-serif'],
+        sans:  ['var(--font-inter)', 'sans-serif'],
+        serif: ['Georgia', 'ui-serif', 'serif'],
       },
     },
   },
