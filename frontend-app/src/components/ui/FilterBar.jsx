@@ -24,6 +24,7 @@ export default function FilterBar({
   availableTags = [],
   dietary, onDietaryToggle,
   sort, onSortChange,
+  savedActive, onToggleSaved,
   hasActiveFilters, onClear,
 }) {
   return (
@@ -67,6 +68,15 @@ export default function FilterBar({
               {opt}
             </button>
           ))}
+
+          {/* Saved chip */}
+          <button
+            onClick={onToggleSaved}
+            className={`${pillBase} flex items-center gap-1 ${savedActive ? pillOn : pillOff}`}
+          >
+            <span style={{ fontSize: '11px' }}>{savedActive ? '♥' : '♡'}</span>
+            Saved
+          </button>
 
           {hasActiveFilters && (
             <>

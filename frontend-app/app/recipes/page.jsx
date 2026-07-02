@@ -6,18 +6,19 @@ import PageWrapper from '@/src/components/layout/PageWrapper';
 import SearchBar from '@/src/components/ui/SearchBar';
 import FilterBar from '@/src/components/ui/FilterBar';
 import RecipeCard from '@/src/components/ui/RecipeCard';
+import ShoppingListPanel from '@/src/components/ui/ShoppingListPanel';
+import { useFavorites } from '@/src/hooks/useFavorites';
+import { useShoppingList } from '@/src/hooks/useShoppingList';
 
 const API = 'http://localhost:8080/api';
 
-const DIFFICULTY_ORDER  = { easy: 0, medium: 1, hard: 2 };
-const KNOWN_CUISINES    = new Set(['italian','japanese','mexican','greek','asian','indian','seafood','french','mediterranean']);
+const DIFFICULTY_ORDER = { easy: 0, medium: 1, hard: 2 };
+const KNOWN_CUISINES   = new Set(['italian','japanese','mexican','greek','asian','indian','seafood','french','mediterranean']);
 
 function parseMinutes(str) {
   const m = String(str).match(/\d+/);
   return m ? parseInt(m[0], 10) : 0;
 }
-
-// ─── Section label style ──────────────────────────────────────────────────────
 
 const sectionLabelClass =
   'text-[9px] font-medium tracking-[0.1em] uppercase text-text-muted border-b border-border pb-1 mb-3';
@@ -63,10 +64,13 @@ function CuisineChip({ label, active, onClick }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function RecipesPage() {
-  const [recipes, setRecipes]                 = useState([]);
-  const [allTags, setAllTags]                 = useState([]);
+  // ── Data state ──
+  const [recipes, setRecipes]                     = useState([]);
+  const [allTags, setAllTags]                     = useState([]);
   const [availableCuisines, setAvailableCuisines] = useState([]);
-  const [totalStats, setTotalStats]           = useState({ count: 0, cuisines: 0 });
+  const [totalStats, setTotalStats]               = useState({ count: 0, cuisines: 0 });
+
+  // ── Filter state ──
   const [search, setSearch]                   = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedTags, setSelectedTags]       = useState([]);
@@ -74,8 +78,18 @@ export default function RecipesPage() {
   const [dietary, setDietary]                 = useState([]);
   const [sort, setSort]                       = useState('');
   const [selectedCuisine, setSelectedCuisine] = useState('');
-  const [loading, setLoading]                 = useState(true);
-  const [error, setError]                     = useState(null);
+  const [showSaved, setShowSaved]             = useState(false);
+
+  // ── Async state ──
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
+
+  // ── Panel state ──
+  const [panelOpen, setPanelOpen] = useState(false);
+
+  // ── Feature hooks ──
+  const { favoriteIds, toggleFavorite, isFavorited }                        = useFavorites();
+  const { selectedRecipes, toggleRecipe, isSelected, clearList, aggregatedIngredients } = useShoppingList();
 
   // Debounce search 300ms
   useEffect(() => {
@@ -83,7 +97,7 @@ export default function RecipesPage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  // Seed allTags, cuisines, and hero stats from unfiltered data (once on mount)
+  // Seed tags, cuisines, and hero stats from unfiltered data (once on mount)
   useEffect(() => {
     fetch(`${API}/recipes`)
       .then(r => r.json())
@@ -105,7 +119,7 @@ export default function RecipesPage() {
     setError(null);
 
     const params = new URLSearchParams();
-    if (debouncedSearch)    params.set('search', debouncedSearch);
+    if (debouncedSearch)     params.set('search', debouncedSearch);
     if (selectedTags.length) params.set('tags', selectedTags.join(','));
     if (difficulty)          params.set('difficulty', difficulty);
 
@@ -117,28 +131,24 @@ export default function RecipesPage() {
         setRecipes(json.data);
         setLoading(false);
       })
-      .catch(err => {
-        setError(err.message);
-        setLoading(false);
-      });
+      .catch(err => { setError(err.message); setLoading(false); });
   }, [debouncedSearch, selectedTags, difficulty]);
 
   useEffect(() => { fetchRecipes(); }, [fetchRecipes]);
 
-  // Client-side: dietary + cuisine filter, then sort
+  // Client-side: dietary + cuisine + saved filter, then sort
   const displayRecipes = useMemo(() => {
     let result = recipes;
 
     if (dietary.length > 0) {
-      result = result.filter(r =>
-        dietary.every(opt => r.tags.includes(opt.toLowerCase()))
-      );
+      result = result.filter(r => dietary.every(opt => r.tags.includes(opt.toLowerCase())));
     }
-
     if (selectedCuisine) {
       result = result.filter(r => r.tags.includes(selectedCuisine));
     }
-
+    if (showSaved) {
+      result = result.filter(r => favoriteIds.includes(r.id));
+    }
     if (sort) {
       result = [...result].sort((a, b) => {
         switch (sort) {
@@ -152,9 +162,9 @@ export default function RecipesPage() {
     }
 
     return result;
-  }, [recipes, dietary, selectedCuisine, sort]);
+  }, [recipes, dietary, selectedCuisine, showSaved, favoriteIds, sort]);
 
-  const hasActiveFilters = !!(search || selectedTags.length || dietary.length || difficulty || sort || selectedCuisine);
+  const hasActiveFilters = !!(search || selectedTags.length || dietary.length || difficulty || sort || selectedCuisine || showSaved);
 
   function clearFilters() {
     setSearch('');
@@ -164,29 +174,30 @@ export default function RecipesPage() {
     setDifficulty('');
     setSort('');
     setSelectedCuisine('');
+    setShowSaved(false);
   }
 
-  const handleTagToggle = tag =>
-    setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
-
-  const handleDietaryToggle = opt =>
-    setDietary(prev => prev.includes(opt) ? prev.filter(d => d !== opt) : [...prev, opt]);
+  const handleTagToggle     = tag => setSelectedTags(prev => prev.includes(tag)  ? prev.filter(t => t !== tag)  : [...prev, tag]);
+  const handleDietaryToggle = opt => setDietary(prev     => prev.includes(opt)   ? prev.filter(d => d !== opt)  : [...prev, opt]);
 
   const sectionLabel = hasActiveFilters
     ? `${displayRecipes.length} result${displayRecipes.length !== 1 ? 's' : ''}`
     : 'Latest recipes';
 
+  const emptyTitle = showSaved && favoriteIds.length === 0 ? 'No saved recipes yet' : 'No recipes found';
+  const emptySub   = showSaved && favoriteIds.length === 0
+    ? 'Click the heart on any recipe to save it'
+    : hasActiveFilters ? 'Try adjusting your search or filters' : 'No recipes available';
+
   return (
     <>
       <Navbar />
 
-      {/* ── Hero band ── */}
+      {/* ── Hero ── */}
       <div className="bg-hero w-full">
         <div className="max-w-3xl mx-auto px-4 py-7">
           <p className="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">
-            {totalStats.count > 0
-              ? `${totalStats.count} recipes · ${totalStats.cuisines} cuisines`
-              : ' '}
+            {totalStats.count > 0 ? `${totalStats.count} recipes · ${totalStats.cuisines} cuisines` : ' '}
           </p>
           <h1 className="font-serif text-2xl text-text-primary mb-4" style={{ lineHeight: '1.2' }}>
             What are you cooking today?
@@ -205,6 +216,7 @@ export default function RecipesPage() {
             availableTags={allTags}
             dietary={dietary}            onDietaryToggle={handleDietaryToggle}
             sort={sort}                  onSortChange={setSort}
+            savedActive={showSaved}      onToggleSaved={() => setShowSaved(s => !s)}
             hasActiveFilters={hasActiveFilters}
             onClear={clearFilters}
           />
@@ -215,11 +227,7 @@ export default function RecipesPage() {
           <p className={sectionLabelClass}>Browse by cuisine</p>
           <div className="overflow-x-auto">
             <div className="flex gap-2 min-w-max">
-              <CuisineChip
-                label="All"
-                active={!selectedCuisine}
-                onClick={() => setSelectedCuisine('')}
-              />
+              <CuisineChip label="All" active={!selectedCuisine} onClick={() => setSelectedCuisine('')} />
               {availableCuisines.map(c => (
                 <CuisineChip
                   key={c}
@@ -253,20 +261,50 @@ export default function RecipesPage() {
           </div>
         ) : displayRecipes.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <p className="text-text-primary mb-1">No recipes found</p>
-            <p className="text-sm text-text-secondary">
-              {hasActiveFilters ? 'Try adjusting your search or filters' : 'No recipes available'}
-            </p>
+            <p className="text-text-primary mb-1">{emptyTitle}</p>
+            <p className="text-sm text-text-secondary">{emptySub}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {displayRecipes.map(recipe => (
-              <RecipeCard key={recipe.id} recipe={recipe} />
+              <RecipeCard
+                key={recipe.id}
+                recipe={recipe}
+                isFavorited={isFavorited(recipe.id)}
+                onToggleFavorite={() => toggleFavorite(recipe.id)}
+                isSelected={isSelected(recipe.id)}
+                onToggleRecipe={() => toggleRecipe(recipe)}
+              />
             ))}
           </div>
         )}
 
       </PageWrapper>
+
+      {/* ── Floating shopping list button ── */}
+      {selectedRecipes.length > 0 && (
+        <button
+          onClick={() => setPanelOpen(true)}
+          className="fixed bottom-6 right-6 z-30 flex items-center gap-2 text-white rounded-xl text-sm font-medium transition-opacity hover:opacity-90"
+          style={{ background: '#2C1810', padding: '10px 16px', boxShadow: '0 2px 12px rgba(44,24,16,0.2)' }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <path d="M16 10a4 4 0 01-8 0"/>
+          </svg>
+          List ({selectedRecipes.length})
+        </button>
+      )}
+
+      {/* ── Shopping list panel ── */}
+      <ShoppingListPanel
+        isOpen={panelOpen}
+        onClose={() => setPanelOpen(false)}
+        selectedRecipes={selectedRecipes}
+        aggregatedIngredients={aggregatedIngredients}
+        onClearList={clearList}
+      />
     </>
   );
 }

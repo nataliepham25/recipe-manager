@@ -8,6 +8,7 @@ import PageWrapper from '@/src/components/layout/PageWrapper';
 import Tag from '@/src/components/ui/Tag';
 import DifficultyBadge from '@/src/components/ui/DifficultyBadge';
 import NutritionCard from '@/src/components/ui/NutritionCard';
+import { useFavorites } from '@/src/hooks/useFavorites';
 
 const API = 'http://localhost:8080/api';
 
@@ -64,7 +65,7 @@ function Skeleton() {
       <Bone className="h-3 w-24 mb-6" />
       <Bone className="h-3 w-32 mb-2" />
       <Bone className="h-8 w-2/3 mb-2" />
-      <Bone className="h-3 w-full mb-1" />
+      <Bone className="h-3 w-28 mb-2" />
       <Bone className="h-3 w-3/4 mb-6" />
       <div className="flex gap-2 mb-6">
         {[...Array(4)].map((_, i) => <Bone key={i} className="flex-1 h-14 rounded-lg" />)}
@@ -97,8 +98,6 @@ function Skeleton() {
   );
 }
 
-// ─── Shared action button ─────────────────────────────────────────────────────
-
 const actionBtn =
   'text-sm px-4 py-2 border border-border rounded-lg text-text-primary hover:border-accent transition-colors';
 
@@ -111,6 +110,8 @@ export default function RecipeDetailPage() {
   const [loading, setLoading]   = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError]       = useState(null);
+
+  const { isFavorited, toggleFavorite } = useFavorites();
 
   const fetchRecipe = useCallback(() => {
     setLoading(true);
@@ -165,6 +166,8 @@ export default function RecipeDetailPage() {
             recipe.difficulty.charAt(0).toUpperCase() + recipe.difficulty.slice(1),
           ].filter(Boolean).join(' · ');
 
+          const favorited = isFavorited(recipe.id);
+
           return (
             <>
               {/* Back link */}
@@ -175,18 +178,33 @@ export default function RecipeDetailPage() {
                 ← All recipes
               </Link>
 
-              {/* Header block */}
+              {/* Eyebrow */}
               <p className="text-[10px] font-medium uppercase tracking-widest text-text-muted mb-1">
                 {eyebrow}
               </p>
+
+              {/* Title */}
               <h1 className="font-serif text-3xl text-text-primary" style={{ lineHeight: '1.2' }}>
                 {recipe.title}
               </h1>
+
+              {/* Heart toggle — below title */}
+              <button
+                onClick={() => toggleFavorite(recipe.id)}
+                className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors mt-2"
+              >
+                <span style={{ fontSize: '15px', color: favorited ? '#A0785A' : '#E5DDD3', lineHeight: 1 }}>
+                  {favorited ? '♥' : '♡'}
+                </span>
+                {favorited ? 'Saved' : 'Save recipe'}
+              </button>
+
+              {/* Description */}
               {recipe.description && (
                 <p className="text-sm text-text-secondary mt-[6px] mb-4">{recipe.description}</p>
               )}
 
-              {/* Meta chips row */}
+              {/* Meta chips */}
               <div className="flex gap-2 mb-4">
                 <MetaChip label="Prep">{recipe.prepTime}</MetaChip>
                 <MetaChip label="Cook">{recipe.cookTime}</MetaChip>
@@ -213,13 +231,7 @@ export default function RecipeDetailPage() {
                         <span
                           aria-hidden="true"
                           className="flex-shrink-0 select-none"
-                          style={{
-                            fontSize: '28px',
-                            fontWeight: 500,
-                            color: '#E5DDD3',
-                            minWidth: '36px',
-                            lineHeight: '1',
-                          }}
+                          style={{ fontSize: '28px', fontWeight: 500, color: '#E5DDD3', minWidth: '36px', lineHeight: '1' }}
                         >
                           {String(i + 1).padStart(2, '0')}
                         </span>
