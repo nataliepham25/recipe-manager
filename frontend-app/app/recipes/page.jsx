@@ -13,7 +13,7 @@ import { useShoppingList } from '@/src/hooks/useShoppingList';
 const API = 'http://localhost:8080/api';
 
 const DIFFICULTY_ORDER = { easy: 0, medium: 1, hard: 2 };
-const KNOWN_CUISINES   = new Set(['italian','japanese','mexican','greek','asian','indian','seafood','french','mediterranean']);
+const KNOWN_CUISINES   = new Set(['italian','japanese','mexican','greek','asian','indian','seafood','french','mediterranean','american']);
 
 function parseMinutes(str) {
   const m = String(str).match(/\d+/);
@@ -103,7 +103,10 @@ export default function RecipesPage() {
       .then(r => r.json())
       .then(json => {
         if (!json.success) return;
-        setAllTags([...new Set(json.data.flatMap(r => r.tags))].sort());
+        const tagCounts = {};
+        json.data.forEach(r => r.tags.forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
+        const sortedTags = [...new Set(json.data.flatMap(r => r.tags))].sort((a, b) => (tagCounts[b] || 0) - (tagCounts[a] || 0));
+        setAllTags(sortedTags);
         const cuisines = [...new Set(
           json.data.flatMap(r => r.tags.filter(t => KNOWN_CUISINES.has(t)))
         )].sort();

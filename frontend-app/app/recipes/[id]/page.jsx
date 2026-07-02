@@ -12,7 +12,13 @@ import { useFavorites } from '@/src/hooks/useFavorites';
 
 const API = 'http://localhost:8080/api';
 
-const KNOWN_CUISINES = new Set(['italian','japanese','mexican','greek','asian','indian','seafood','french','mediterranean']);
+const KNOWN_CUISINES = new Set(['italian','japanese','mexican','greek','asian','indian','seafood','french','mediterranean','american']);
+
+const AI_BUTTONS = [
+  { type: 'substitution',  label: 'Substitution Ideas' },
+  { type: 'scaling_tips',  label: 'Scaling Tips' },
+  { type: 'pairing',       label: 'Pairing Suggestions' },
+];
 
 function parseAmount(amount) {
   const str = String(amount).trim();
@@ -37,6 +43,17 @@ function scaleNutrition(nutrition, defaultServings, selectedServings) {
     carbs:    Math.round(nutrition.carbs    * scale * 10) / 10,
     fat:      Math.round(nutrition.fat      * scale * 10) / 10,
   };
+}
+
+function stripMarkdown(text) {
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^-{3,}\s*$/gm, '')
+    .replace(/^>\s?/gm, '')
+    .replace(/`([^`]+)`/g, '$1')
+    .trim();
 }
 
 // ─── Meta chip ────────────────────────────────────────────────────────────────
@@ -111,6 +128,11 @@ export default function RecipeDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [error, setError]       = useState(null);
 
+  const [aiType, setAiType]       = useState(null);
+  const [aiResult, setAiResult]   = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError]     = useState(null);
+
   const { isFavorited, toggleFavorite } = useFavorites();
 
   const fetchRecipe = useCallback(() => {
@@ -132,9 +154,38 @@ export default function RecipeDetailPage() {
 
   useEffect(() => { fetchRecipe(); }, [fetchRecipe]);
 
+  function handleAiButton(type) {
+    if (aiType === type && !aiLoading) {
+      setAiType(null);
+      setAiResult(null);
+      setAiError(null);
+      return;
+    }
+
+    setAiType(type);
+    setAiResult(null);
+    setAiError(null);
+    setAiLoading(true);
+
+    fetch(`${API}/ai/suggest`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipeId: id, type }),
+    })
+      .then(async r => {
+        const json = await r.json();
+        if (!json.success) throw new Error(json.error || 'Failed to get suggestion');
+        setAiResult(json.data);
+        setAiLoading(false);
+      })
+      .catch(err => { setAiError(err.message); setAiLoading(false); });
+  }
+
   const scaledNutrition = recipe && servings != null
     ? scaleNutrition(recipe.nutrition, recipe.servings, servings)
     : null;
+
+  const showAiResult = aiType && (aiLoading || aiResult || aiError);
 
   return (
     <>
@@ -160,7 +211,7 @@ export default function RecipeDetailPage() {
         )}
 
         {!loading && recipe && (() => {
-          const cuisineTag = recipe.tags.find(t => KNOWN_CUISINES.has(t.toLowerCase()));
+          const cuisineTag = recipe.tags?.find(t => KNOWN_CUISINES.has(t.toLowerCase()));
           const eyebrow = [
             cuisineTag && (cuisineTag.charAt(0).toUpperCase() + cuisineTag.slice(1)),
             recipe.difficulty.charAt(0).toUpperCase() + recipe.difficulty.slice(1),
@@ -298,6 +349,84 @@ export default function RecipeDetailPage() {
                     )}
                   </div>
                 </div>
+
+              </div>
+
+              {/* ── AI Assistant — full width below columns ── */}
+              <div className="border-t border-[#E5DDD3] my-6" />
+
+              <div style={{ background: '#F5EDE3', borderRadius: '10px', padding: '16px 20px' }}>
+
+                {/* Header */}
+                <div className="flex items-start gap-2 mb-4">
+                  <span style={{ fontSize: '14px', color: '#A0785A', lineHeight: 1, marginTop: '2px' }}>✦</span>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: '#2C1810' }}>AI Assistant</p>
+                    <p className="text-xs" style={{ color: '#7A6355' }}>Ask Claude about this recipe</p>
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex gap-2 flex-wrap">
+                  {AI_BUTTONS.map(({ type, label }) => (
+                    <button
+                      key={type}
+                      onClick={() => handleAiButton(type)}
+                      disabled={aiLoading && aiType !== type}
+                      className="text-xs rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{
+                        padding: '6px 14px',
+                        background: aiType === type ? '#A0785A' : '#FFFFFF',
+                        border: `1px solid ${aiType === type ? '#A0785A' : '#E5DDD3'}`,
+                        color: aiType === type ? '#FFFFFF' : '#7A6355',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Result area */}
+                {showAiResult && (
+                  <div className="mt-4">
+                    {aiLoading && (
+                      <div className="space-y-2">
+                        <div className="h-3 rounded animate-pulse" style={{ background: '#E5DDD3', width: '80%' }} />
+                        <div className="h-3 rounded animate-pulse" style={{ background: '#E5DDD3', width: '60%' }} />
+                      </div>
+                    )}
+
+                    {!aiLoading && aiError && (
+                      <p className="text-xs" style={{ color: '#7A6355' }}>{aiError}</p>
+                    )}
+
+                    {!aiLoading && aiResult && (
+                      <div
+                        key={aiType}
+                        style={{
+                          background: '#FFFFFF',
+                          border: '1px solid #E5DDD3',
+                          borderRadius: '8px',
+                          padding: '12px 14px',
+                          animation: 'fadeIn 0.25s ease',
+                        }}
+                      >
+                        <p
+                          className="text-[9px] font-medium uppercase tracking-wide mb-2"
+                          style={{ color: '#A0785A' }}
+                        >
+                          {AI_BUTTONS.find(b => b.type === aiType)?.label}
+                        </p>
+                        <p
+                          className="text-sm whitespace-pre-wrap"
+                          style={{ color: '#2C1810', lineHeight: '1.7' }}
+                        >
+                          {stripMarkdown(aiResult)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
               </div>
             </>

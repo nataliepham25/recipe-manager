@@ -11,6 +11,7 @@ const CUISINE_ACCENT = {
   indian:        '#D4896A',
   seafood:       '#7BAE8A',
   mediterranean: '#8BA8C4',
+  american:      '#C4956A',
   default:       '#A0785A',
 };
 
@@ -23,7 +24,7 @@ export default function RecipeCard({
   isSelected     = false,
   onToggleRecipe,
 }) {
-  const cuisineTag  = recipe.tags.find(t => KNOWN_CUISINES.has(t.toLowerCase()));
+  const cuisineTag  = recipe.tags?.find(t => KNOWN_CUISINES.has(t.toLowerCase()));
   const accentColor = CUISINE_ACCENT[cuisineTag] ?? CUISINE_ACCENT.default;
 
   return (

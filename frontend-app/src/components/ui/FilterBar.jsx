@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 const DIFFICULTIES    = ['easy', 'medium', 'hard'];
 const DIETARY_OPTIONS = ['Vegetarian', 'Vegan', 'Gluten-Free'];
 const SORT_OPTIONS    = [
@@ -9,6 +11,8 @@ const SORT_OPTIONS    = [
   { value: 'diff-asc',   label: 'Difficulty: easy first' },
   { value: 'diff-desc',  label: 'Difficulty: hard first' },
 ];
+
+const TAG_LIMIT = 8;
 
 const selectClass =
   'bg-surface border border-border rounded-lg px-3 py-1.5 text-sm text-text-primary ' +
@@ -27,6 +31,11 @@ export default function FilterBar({
   savedActive, onToggleSaved,
   hasActiveFilters, onClear,
 }) {
+  const [tagsExpanded, setTagsExpanded] = useState(false);
+
+  const visibleTags = tagsExpanded ? availableTags : availableTags.slice(0, TAG_LIMIT);
+  const hasMore     = availableTags.length > TAG_LIMIT;
+
   return (
     <div className="space-y-2">
 
@@ -96,7 +105,7 @@ export default function FilterBar({
       {/* ── Wrapping tag pills ── */}
       {availableTags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {availableTags.map(tag => (
+          {visibleTags.map(tag => (
             <button
               key={tag}
               onClick={() => onTagToggle(tag)}
@@ -105,6 +114,15 @@ export default function FilterBar({
               {tag}
             </button>
           ))}
+
+          {hasMore && (
+            <button
+              onClick={() => setTagsExpanded(e => !e)}
+              className="text-xs px-2.5 py-1 rounded-full border border-border bg-surface text-text-secondary hover:border-accent transition-colors whitespace-nowrap"
+            >
+              {tagsExpanded ? 'Show less' : `+${availableTags.length - TAG_LIMIT} more`}
+            </button>
+          )}
         </div>
       )}
 

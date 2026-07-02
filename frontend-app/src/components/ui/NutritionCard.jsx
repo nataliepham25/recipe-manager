@@ -18,7 +18,7 @@ export default function NutritionCard({ nutrition, servings }) {
           <div key={key} style={{ background: '#F5EDE3', borderRadius: '8px', padding: '8px 10px' }}>
             <p className="text-[9px] uppercase tracking-wide text-text-muted mb-1">{label}</p>
             <p className="text-base font-medium text-text-primary">
-              {nutrition[key]}
+              {nutrition[key] ?? 0}
               <span className="text-[10px] text-text-muted ml-1">{unit}</span>
             </p>
           </div>
