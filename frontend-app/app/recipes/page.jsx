@@ -1,19 +1,31 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import Navbar from '@/src/components/layout/Navbar';
-import PageWrapper from '@/src/components/layout/PageWrapper';
-import SearchBar from '@/src/components/ui/SearchBar';
-import FilterBar from '@/src/components/ui/FilterBar';
-import RecipeCard from '@/src/components/ui/RecipeCard';
-import ShoppingListPanel from '@/src/components/ui/ShoppingListPanel';
-import { useFavorites } from '@/src/hooks/useFavorites';
-import { useShoppingList } from '@/src/hooks/useShoppingList';
+import { useState, useEffect, useCallback, useMemo } from "react";
+import Navbar from "@/src/components/layout/Navbar";
+import PageWrapper from "@/src/components/layout/PageWrapper";
+import SearchBar from "@/src/components/ui/SearchBar";
+import FilterBar from "@/src/components/ui/FilterBar";
+import RecipeCard from "@/src/components/ui/RecipeCard";
+import ShoppingListPanel from "@/src/components/ui/ShoppingListPanel";
+import { useFavorites } from "@/src/hooks/useFavorites";
+import { useShoppingList } from "@/src/hooks/useShoppingList";
 
-const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080') + '/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+const API = API_URL + "/api";
 
 const DIFFICULTY_ORDER = { easy: 0, medium: 1, hard: 2 };
-const KNOWN_CUISINES   = new Set(['italian','japanese','mexican','greek','asian','indian','seafood','french','mediterranean','american']);
+const KNOWN_CUISINES = new Set([
+  "italian",
+  "japanese",
+  "mexican",
+  "greek",
+  "asian",
+  "indian",
+  "seafood",
+  "french",
+  "mediterranean",
+  "american",
+]);
 
 function parseMinutes(str) {
   const m = String(str).match(/\d+/);
@@ -21,7 +33,7 @@ function parseMinutes(str) {
 }
 
 const sectionLabelClass =
-  'text-[9px] font-medium tracking-[0.1em] uppercase text-text-muted border-b border-border pb-1 mb-3';
+  "text-[9px] font-medium tracking-[0.1em] uppercase text-text-muted border-b border-border pb-1 mb-3";
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
@@ -52,8 +64,8 @@ function CuisineChip({ label, active, onClick }) {
       onClick={onClick}
       className={`border rounded-md text-xs px-3 py-1 capitalize transition-colors whitespace-nowrap ${
         active
-          ? 'bg-accent text-white border-accent'
-          : 'bg-surface border-border text-text-secondary hover:border-accent'
+          ? "bg-accent text-white border-accent"
+          : "bg-surface border-border text-text-secondary hover:border-accent"
       }`}
     >
       {label}
@@ -65,31 +77,37 @@ function CuisineChip({ label, active, onClick }) {
 
 export default function RecipesPage() {
   // ── Data state ──
-  const [recipes, setRecipes]                     = useState([]);
-  const [allTags, setAllTags]                     = useState([]);
+  const [recipes, setRecipes] = useState([]);
+  const [allTags, setAllTags] = useState([]);
   const [availableCuisines, setAvailableCuisines] = useState([]);
-  const [totalStats, setTotalStats]               = useState({ count: 0, cuisines: 0 });
+  const [totalStats, setTotalStats] = useState({ count: 0, cuisines: 0 });
 
   // ── Filter state ──
-  const [search, setSearch]                   = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [selectedTags, setSelectedTags]       = useState([]);
-  const [difficulty, setDifficulty]           = useState('');
-  const [dietary, setDietary]                 = useState([]);
-  const [sort, setSort]                       = useState('');
-  const [selectedCuisine, setSelectedCuisine] = useState('');
-  const [showSaved, setShowSaved]             = useState(false);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [difficulty, setDifficulty] = useState("");
+  const [dietary, setDietary] = useState([]);
+  const [sort, setSort] = useState("");
+  const [selectedCuisine, setSelectedCuisine] = useState("");
+  const [showSaved, setShowSaved] = useState(false);
 
   // ── Async state ──
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [error, setError] = useState(null);
 
   // ── Panel state ──
   const [panelOpen, setPanelOpen] = useState(false);
 
   // ── Feature hooks ──
-  const { favoriteIds, toggleFavorite, isFavorited }                        = useFavorites();
-  const { selectedRecipes, toggleRecipe, isSelected, clearList, aggregatedIngredients } = useShoppingList();
+  const { favoriteIds, toggleFavorite, isFavorited } = useFavorites();
+  const {
+    selectedRecipes,
+    toggleRecipe,
+    isSelected,
+    clearList,
+    aggregatedIngredients,
+  } = useShoppingList();
 
   // Debounce search 300ms
   useEffect(() => {
@@ -100,16 +118,26 @@ export default function RecipesPage() {
   // Seed tags, cuisines, and hero stats from unfiltered data (once on mount)
   useEffect(() => {
     fetch(`${API}/recipes`)
-      .then(r => r.json())
-      .then(json => {
+      .then((r) => r.json())
+      .then((json) => {
         if (!json.success) return;
         const tagCounts = {};
-        json.data.forEach(r => r.tags.forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; }));
-        const sortedTags = [...new Set(json.data.flatMap(r => r.tags))].sort((a, b) => (tagCounts[b] || 0) - (tagCounts[a] || 0));
+        json.data.forEach((r) =>
+          r.tags.forEach((t) => {
+            tagCounts[t] = (tagCounts[t] || 0) + 1;
+          }),
+        );
+        const sortedTags = [...new Set(json.data.flatMap((r) => r.tags))].sort(
+          (a, b) => (tagCounts[b] || 0) - (tagCounts[a] || 0),
+        );
         setAllTags(sortedTags);
-        const cuisines = [...new Set(
-          json.data.flatMap(r => r.tags.filter(t => KNOWN_CUISINES.has(t)))
-        )].sort();
+        const cuisines = [
+          ...new Set(
+            json.data.flatMap((r) =>
+              r.tags.filter((t) => KNOWN_CUISINES.has(t)),
+            ),
+          ),
+        ].sort();
         setAvailableCuisines(cuisines);
         setTotalStats({ count: json.data.length, cuisines: cuisines.length });
       })
@@ -122,44 +150,63 @@ export default function RecipesPage() {
     setError(null);
 
     const params = new URLSearchParams();
-    if (debouncedSearch)     params.set('search', debouncedSearch);
-    if (selectedTags.length) params.set('tags', selectedTags.join(','));
-    if (difficulty)          params.set('difficulty', difficulty);
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (selectedTags.length) params.set("tags", selectedTags.join(","));
+    if (difficulty) params.set("difficulty", difficulty);
 
     const qs = params.toString();
-    fetch(`${API}/recipes${qs ? `?${qs}` : ''}`)
-      .then(r => r.json())
-      .then(json => {
-        if (!json.success) throw new Error(json.error || 'Failed to fetch recipes');
+    fetch(`${API}/recipes${qs ? `?${qs}` : ""}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (!json.success)
+          throw new Error(json.error || "Failed to fetch recipes");
         setRecipes(json.data);
         setLoading(false);
       })
-      .catch(err => { setError(err.message); setLoading(false); });
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
   }, [debouncedSearch, selectedTags, difficulty]);
 
-  useEffect(() => { fetchRecipes(); }, [fetchRecipes]);
+  useEffect(() => {
+    fetchRecipes();
+  }, [fetchRecipes]);
 
   // Client-side: dietary + cuisine + saved filter, then sort
   const displayRecipes = useMemo(() => {
     let result = recipes;
 
     if (dietary.length > 0) {
-      result = result.filter(r => dietary.every(opt => r.tags.includes(opt.toLowerCase())));
+      result = result.filter((r) =>
+        dietary.every((opt) => r.tags.includes(opt.toLowerCase())),
+      );
     }
     if (selectedCuisine) {
-      result = result.filter(r => r.tags.includes(selectedCuisine));
+      result = result.filter((r) => r.tags.includes(selectedCuisine));
     }
     if (showSaved) {
-      result = result.filter(r => favoriteIds.includes(r.id));
+      result = result.filter((r) => favoriteIds.includes(r.id));
     }
     if (sort) {
       result = [...result].sort((a, b) => {
         switch (sort) {
-          case 'prep-asc':  return parseMinutes(a.prepTime)  - parseMinutes(b.prepTime);
-          case 'prep-desc': return parseMinutes(b.prepTime)  - parseMinutes(a.prepTime);
-          case 'diff-asc':  return (DIFFICULTY_ORDER[a.difficulty] ?? 1) - (DIFFICULTY_ORDER[b.difficulty] ?? 1);
-          case 'diff-desc': return (DIFFICULTY_ORDER[b.difficulty] ?? 1) - (DIFFICULTY_ORDER[a.difficulty] ?? 1);
-          default: return 0;
+          case "prep-asc":
+            return parseMinutes(a.prepTime) - parseMinutes(b.prepTime);
+          case "prep-desc":
+            return parseMinutes(b.prepTime) - parseMinutes(a.prepTime);
+          case "diff-asc":
+            return (
+              (DIFFICULTY_ORDER[a.difficulty] ?? 1) -
+              (DIFFICULTY_ORDER[b.difficulty] ?? 1)
+            );
+          case "diff-desc":
+            return (
+              (DIFFICULTY_ORDER[b.difficulty] ?? 1) -
+              (DIFFICULTY_ORDER[a.difficulty] ?? 1)
+            );
+          default:
+            return 0;
         }
       });
     }
@@ -167,30 +214,50 @@ export default function RecipesPage() {
     return result;
   }, [recipes, dietary, selectedCuisine, showSaved, favoriteIds, sort]);
 
-  const hasActiveFilters = !!(search || selectedTags.length || dietary.length || difficulty || sort || selectedCuisine || showSaved);
+  const hasActiveFilters = !!(
+    search ||
+    selectedTags.length ||
+    dietary.length ||
+    difficulty ||
+    sort ||
+    selectedCuisine ||
+    showSaved
+  );
 
   function clearFilters() {
-    setSearch('');
-    setDebouncedSearch('');
+    setSearch("");
+    setDebouncedSearch("");
     setSelectedTags([]);
     setDietary([]);
-    setDifficulty('');
-    setSort('');
-    setSelectedCuisine('');
+    setDifficulty("");
+    setSort("");
+    setSelectedCuisine("");
     setShowSaved(false);
   }
 
-  const handleTagToggle     = tag => setSelectedTags(prev => prev.includes(tag)  ? prev.filter(t => t !== tag)  : [...prev, tag]);
-  const handleDietaryToggle = opt => setDietary(prev     => prev.includes(opt)   ? prev.filter(d => d !== opt)  : [...prev, opt]);
+  const handleTagToggle = (tag) =>
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+    );
+  const handleDietaryToggle = (opt) =>
+    setDietary((prev) =>
+      prev.includes(opt) ? prev.filter((d) => d !== opt) : [...prev, opt],
+    );
 
   const sectionLabel = hasActiveFilters
-    ? `${displayRecipes.length} result${displayRecipes.length !== 1 ? 's' : ''}`
-    : 'Latest recipes';
+    ? `${displayRecipes.length} result${displayRecipes.length !== 1 ? "s" : ""}`
+    : "Latest recipes";
 
-  const emptyTitle = showSaved && favoriteIds.length === 0 ? 'No saved recipes yet' : 'No recipes found';
-  const emptySub   = showSaved && favoriteIds.length === 0
-    ? 'Click the heart on any recipe to save it'
-    : hasActiveFilters ? 'Try adjusting your search or filters' : 'No recipes available';
+  const emptyTitle =
+    showSaved && favoriteIds.length === 0
+      ? "No saved recipes yet"
+      : "No recipes found";
+  const emptySub =
+    showSaved && favoriteIds.length === 0
+      ? "Click the heart on any recipe to save it"
+      : hasActiveFilters
+        ? "Try adjusting your search or filters"
+        : "No recipes available";
 
   return (
     <>
@@ -200,9 +267,14 @@ export default function RecipesPage() {
       <div className="bg-hero w-full">
         <div className="max-w-3xl mx-auto px-4 py-7">
           <p className="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">
-            {totalStats.count > 0 ? `${totalStats.count} recipes · ${totalStats.cuisines} cuisines` : ' '}
+            {totalStats.count > 0
+              ? `${totalStats.count} recipes · ${totalStats.cuisines} cuisines`
+              : " "}
           </p>
-          <h1 className="font-serif text-2xl text-text-primary mb-4" style={{ lineHeight: '1.2' }}>
+          <h1
+            className="font-serif text-2xl text-text-primary mb-4"
+            style={{ lineHeight: "1.2" }}
+          >
             What are you cooking today?
           </h1>
           <SearchBar value={search} onChange={setSearch} />
@@ -210,16 +282,20 @@ export default function RecipesPage() {
       </div>
 
       <PageWrapper>
-
         {/* ── Filters ── */}
         <div className="mb-6">
           <FilterBar
-            difficulty={difficulty}      onDifficultyChange={setDifficulty}
-            selectedTags={selectedTags}  onTagToggle={handleTagToggle}
+            difficulty={difficulty}
+            onDifficultyChange={setDifficulty}
+            selectedTags={selectedTags}
+            onTagToggle={handleTagToggle}
             availableTags={allTags}
-            dietary={dietary}            onDietaryToggle={handleDietaryToggle}
-            sort={sort}                  onSortChange={setSort}
-            savedActive={showSaved}      onToggleSaved={() => setShowSaved(s => !s)}
+            dietary={dietary}
+            onDietaryToggle={handleDietaryToggle}
+            sort={sort}
+            onSortChange={setSort}
+            savedActive={showSaved}
+            onToggleSaved={() => setShowSaved((s) => !s)}
             hasActiveFilters={hasActiveFilters}
             onClear={clearFilters}
           />
@@ -230,13 +306,19 @@ export default function RecipesPage() {
           <p className={sectionLabelClass}>Browse by cuisine</p>
           <div className="overflow-x-auto">
             <div className="flex gap-2 min-w-max">
-              <CuisineChip label="All" active={!selectedCuisine} onClick={() => setSelectedCuisine('')} />
-              {availableCuisines.map(c => (
+              <CuisineChip
+                label="All"
+                active={!selectedCuisine}
+                onClick={() => setSelectedCuisine("")}
+              />
+              {availableCuisines.map((c) => (
                 <CuisineChip
                   key={c}
                   label={c}
                   active={selectedCuisine === c}
-                  onClick={() => setSelectedCuisine(prev => prev === c ? '' : c)}
+                  onClick={() =>
+                    setSelectedCuisine((prev) => (prev === c ? "" : c))
+                  }
                 />
               ))}
             </div>
@@ -249,7 +331,9 @@ export default function RecipesPage() {
         {/* ── Content ── */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <SkeletonCard /><SkeletonCard /><SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -269,7 +353,7 @@ export default function RecipesPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayRecipes.map(recipe => (
+            {displayRecipes.map((recipe) => (
               <RecipeCard
                 key={recipe.id}
                 recipe={recipe}
@@ -281,7 +365,6 @@ export default function RecipesPage() {
             ))}
           </div>
         )}
-
       </PageWrapper>
 
       {/* ── Floating shopping list button ── */}
@@ -289,12 +372,25 @@ export default function RecipesPage() {
         <button
           onClick={() => setPanelOpen(true)}
           className="fixed bottom-6 right-6 z-30 flex items-center gap-2 text-white rounded-xl text-sm font-medium transition-opacity hover:opacity-90"
-          style={{ background: '#2C1810', padding: '10px 16px', boxShadow: '0 2px 12px rgba(44,24,16,0.2)' }}
+          style={{
+            background: "#2C1810",
+            padding: "10px 16px",
+            boxShadow: "0 2px 12px rgba(44,24,16,0.2)",
+          }}
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
-            <line x1="3" y1="6" x2="21" y2="6"/>
-            <path d="M16 10a4 4 0 01-8 0"/>
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <path d="M16 10a4 4 0 01-8 0" />
           </svg>
           List ({selectedRecipes.length})
         </button>
