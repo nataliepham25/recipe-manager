@@ -10,7 +10,7 @@ import ShoppingListPanel from '@/src/components/ui/ShoppingListPanel';
 import { useFavorites } from '@/src/hooks/useFavorites';
 import { useShoppingList } from '@/src/hooks/useShoppingList';
 
-const API = 'http://localhost:8080/api';
+const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080') + '/api';
 
 const DIFFICULTY_ORDER = { easy: 0, medium: 1, hard: 2 };
 const KNOWN_CUISINES   = new Set(['italian','japanese','mexican','greek','asian','indian','seafood','french','mediterranean','american']);

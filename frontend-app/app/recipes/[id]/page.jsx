@@ -10,7 +10,7 @@ import DifficultyBadge from '@/src/components/ui/DifficultyBadge';
 import NutritionCard from '@/src/components/ui/NutritionCard';
 import { useFavorites } from '@/src/hooks/useFavorites';
 
-const API = 'http://localhost:8080/api';
+const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080') + '/api';
 
 const KNOWN_CUISINES = new Set(['italian','japanese','mexican','greek','asian','indian','seafood','french','mediterranean','american']);
 
