@@ -92,6 +92,11 @@ Good luck! We're excited to see your implementation.
 
 ## Candidate Notes
 
+### Demo Video
+
+- Live demo: https://recipe-manager-seven.vercel.app/recipes
+- Demo video: https://www.loom.com/share/67d773b70fa54a65b946df617fde631c
+
 ### Setup Instructions
 
 - Backend: `cd backend-app && npm install && npm run dev` (runs on port 8080)
@@ -106,7 +111,7 @@ Good luck! We're excited to see your implementation.
 - JSON file wrapped in an in-memory cache (read once on startup, no repeated disk reads)
 - Server-side filtering and search across recipe name, tags, ingredients, cuisine, and difficulty
 - Nutrition calculated server-side by joining ingredient data and scaling to serving size
-- Tailwind CSS with a custom Japandi-inspired design system — warm off-white palette, Georgia serif headings, editorial section labels (I chose this to give the app a more content first aesthetic since I am a home baker when I look at websites for recipes, I tend to look at a cleaner and more user friendly aesthetic.)
+- Tailwind CSS with a custom Japandi-inspired design system — warm off-white palette, Georgia serif headings, editorial section labels (I chose this to give the app a more content first aesthetic since I am a home baker when I look at websites for recipes, I tend to look for cleaner and more editorial recipe sites.)
 - AI assistant calls Claude API exclusively from the backend so the API key never reaches the client
 
 ### Completed Features
@@ -140,7 +145,7 @@ Bonus:
 
 ### Data Integrity Fix
 
-During development, I identified that 8 ingredient IDs referenced by recipes in the provided data.json had no corresponding entries in the ingredients lookup table, causing blank ingredient names on the detail page. So, I added the missing ingredient definitions (basil, butter, brown_sugar, white_sugar, broccoli, carrot, soy_sauce, ginger) with realistic nutritional values to resolve the join issue. Also added missing cuisine tags to four recipes (Chocolate Chip Cookies, Berry Smoothie Bowl, Quinoa Buddha Bowl, Almond-Crusted Chicken).
+During development, I identified that 8 ingredient IDs referenced by recipes in the provided data.json had no corresponding entries in the ingredients lookup table, causing blank ingredient names on the detail page. I added the missing ingredient definitions (basil, butter, brown_sugar, white_sugar, broccoli, carrot, soy_sauce, ginger) with realistic nutritional values to resolve the join issue. Also added missing cuisine tags to four recipes (Chocolate Chip Cookies, Berry Smoothie Bowl, Quinoa Buddha Bowl, Almond-Crusted Chicken).
 
 ### Known Limitations
 
