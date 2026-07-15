@@ -81,8 +81,6 @@ The application uses a JSON file (`data.json`) as a mock database
    - Any assumptions made
    - Known limitations or bugs
    - Additional features you'd add with more time
-
-2. Send us (via email to scott.nguyen@sprx.tax & anthony.difalco@sprx.tax):
    - A zip file of the entire project (frontend and backend)
    - A link to a deployed version of the application (bonus points)
 
